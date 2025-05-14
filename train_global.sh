@@ -1,18 +1,22 @@
 #!/bin/bash
 
-nseeds=8
+nseeds=1
 firstseed=200
 
-gpucount=-1
-for (( seed = $firstseed ; seed < $((nseeds+$firstseed)) ; seed++ )); do
+# Check if GPU argument is provided
+if [ -z "$3" ]; then
+  echo "Usage: ./train.sh <model> <static/no_static> <gpu_id>"
+  exit 1
+fi
 
-  gpucount=$(($gpucount + 1))
-  gpu=$(($gpucount % 8))
-  echo $seed $gpucount $gpu
+gpu=$3
+
+for (( seed = $firstseed ; seed < $((nseeds+$firstseed)) ; seed++ )); do
+  echo "Running seed: $seed on GPU: $gpu"
   
   if [ "$1" = "lstm" ] || [ "$1" = "mclstm" ] || [ "$1" = "mcrlstm" ]; then
     model=$1
-    note="ensemble"
+    note="seed200"
     outfile="reports/global_${model}_$2.${seed}_${note}.out"
 
     if [ "$2" = "static" ]; then
@@ -20,17 +24,15 @@ for (( seed = $firstseed ; seed < $((nseeds+$firstseed)) ; seed++ )); do
     elif [ "$2" = "no_static" ]; then
       python3 main.py --gpu=$gpu --model_name=$1 --seed=$seed --no_static=True train > $outfile &
     else
-      echo "bad model choice"
-      exit
+      echo "Bad model choice"
+      exit 1
     fi
 
   else
-    echo "bad model choice"
-    exit
+    echo "Bad model choice"
+    exit 1
   fi
 
-  #if [ $gpu -eq 7 ]; then
-  #  wait
-  #fi
-
+  # Wait for all background processes to complete before starting a new one
+  wait
 done
