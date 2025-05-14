@@ -1,16 +1,11 @@
 """
 This file is part of the accompanying code to our manuscript:
-
-Kratzert, F., Klotz, D., Herrnegger, M., Sampson, A. K., Hochreiter, S., & Nearing, G. S. ( 2019). 
-Toward improved predictions in ungauged basins: Exploiting the power of machine learning.
-Water Resources Research, 55. https://doi.org/10.1029/2019WR026065 
-
-You should have received a copy of the Apache-2.0 license along with the code. If not,
-see <https://opensource.org/licenses/Apache-2.0>
+Y. Wang, L. Zhang, N.B. Erichson, T. Yang. (2025). A Mass Conservation Relaxed (MCR) LSTM Model for Streamflow Simulation
 """
 
 from pathlib import PosixPath
 from typing import List, Tuple
+import pdb
 
 import h5py
 import numpy as np
@@ -19,7 +14,7 @@ import torch
 from torch.utils.data import Dataset
 
 from .datautils import (load_attributes, load_discharge, load_forcing, normalize_features,
-                        reshape_data)
+                        reshape_data, normalize_features_noprecip)
 
 
 class CamelsTXT(Dataset):
@@ -56,6 +51,7 @@ class CamelsTXT(Dataset):
                  dates: List,
                  is_train: bool,
                  seq_length: int = 270,
+                 model_name: str = 'mcrlstm',
                  with_attributes: bool = False,
                  attribute_means: pd.Series = None,
                  attribute_stds: pd.Series = None,
@@ -71,6 +67,7 @@ class CamelsTXT(Dataset):
         self.attribute_stds = attribute_stds
         self.concat_static = concat_static
         self.db_path = db_path
+        self.model_name = model_name
 
         # placeholder to store std of discharge, used for rescaling losses during training
         self.q_std = None
@@ -118,26 +115,22 @@ class CamelsTXT(Dataset):
         x = np.array([
             df['PRCP(mm/day)'].values, df['SRAD(W/m2)'].values, df['Tmax(C)'].values,
             df['Tmin(C)'].values, df['Vp(Pa)'].values
-            #            df['prcp(mm/day)'].values, df['srad(W/m2)'].values, df['tmax(C)'].values,
-            #            df['tmin(C)'].values, df['vp(Pa)'].values
         ]).T
 
         y = np.array([df['QObs(mm/d)'].values]).T
 
         # normalize data, reshape for LSTM training and remove invalid samples
         # for LSTM: (comment out line below if MC-LSTM)
-        x = normalize_features(x, variable='inputs') # todo. For MC-LSTM, do not norm precip. So, comment this.
-        
-        '''
-        # for MC-LSTM and MCR-LSTM:
-        x_tonorm = np.array([
-            df['SRAD(W/m2)'].values, df['Tmax(C)'].values,
-            df['Tmin(C)'].values, df['Vp(Pa)'].values
-        ]).T
-        x_tonorm = normalize_features(x_tonorm, variable = 'inputs')
-        x = np.concatenate([df['PRCP(mm/day)'].values.reshape(-1, 1), x_tonorm], axis=1)
-        # end for MC-LSTM
-        '''
+        if self.model_name == 'lstm':
+            x = normalize_features(x, variable='inputs')
+        elif self.model_name in ['mclstm', 'mcrlstm']:
+            # do not norm precip
+            x_tonorm = np.array([
+                df['SRAD(W/m2)'].values, df['Tmax(C)'].values,
+                df['Tmin(C)'].values, df['Vp(Pa)'].values
+            ]).T
+            x_tonorm = normalize_features_noprecip(x_tonorm, variable = 'inputs')
+            x = np.concatenate([df['PRCP(mm/day)'].values.reshape(-1, 1), x_tonorm], axis=1)
 
         x, y = reshape_data(x, y, self.seq_length)
 
@@ -156,8 +149,8 @@ class CamelsTXT(Dataset):
 
             # store std of discharge before normalization
             self.q_std = np.std(y)
-
-            y = normalize_features(y, variable='output') #todo: comment this out for MC-LSTM
+            if self.model_name == 'lstm':
+                y = normalize_features(y, variable='output') # only normalize the streamflow for lstm
 
         # convert arrays to torch tensors
         x = torch.from_numpy(x.astype(np.float32))
