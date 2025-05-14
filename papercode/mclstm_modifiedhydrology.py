@@ -1,5 +1,9 @@
-import pdb
+"""
+This file is part of the accompanying code to our manuscript:
+Y. Wang, L. Zhang, N.B. Erichson, T. Yang. (2025). A Mass Conservation Relaxed (MCR) LSTM Model for Streamflow Simulation
+"""
 
+import pdb
 import numpy as np
 import torch
 from torch import nn, Tensor
@@ -123,11 +127,6 @@ class MassConservingLSTM(nn.Module):
         i = self.in_gate(features)
         r = self.redistribution(features)
         o = self.out_gate(features)  # size: [batchsize, seq_length, hidden_size], i.e., [64, 365, 128]
-        #print("I am in step, o gate weights")
-        #print(self.out_gate.fc.weight)
-        #print("I am in step, o gate bias")
-        #print(self.out_gate.fc.bias)
-
         # distribute incoming mass over the cell states
         m_in = torch.matmul(xt_m.unsqueeze(-2), i).squeeze(-2)
 
@@ -201,8 +200,6 @@ def eval_model(model, loader) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
     preds = []
     hidden = []
     cell = []
-    # in inference mode, we don't need to store intermediate steps for
-    # backprob
     with torch.no_grad():
         COUNT = 0
         # request mini-batch of data from the loader
@@ -215,14 +212,7 @@ def eval_model(model, loader) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
             xa = xs[..., 1:]
             # get model predictions
             m_out, c, o = model(xm, xa)
-            #print("cell state end: ", c[0,-1, :].sum(dim=-1))
-            #print("out fluxes sum: ", torch.sum(m_out[0,:, :]))
-            #print("mass in sum: ", torch.sum(xm[0,:,:]))
-            #print("mass in snap: ", xm[0,0:5,:])
-            #print("=====")
-            # y_hat = m_out[:, -1:].sum(dim=-1)
             output = m_out[:, :, 1:].sum(dim=-1, keepdim=True)  # trash cell excluded [batch size, seq length, 1]
-            # y_hat = output.transpose(0, 1)
             y_hat = output[:, -1, :]
             hidden_state = m_out[:, -1, :]  # [batch size, 1, hidden sizes]
             cell_state = c[:, -1, :].sum(dim=-1, keepdim=True)
@@ -230,8 +220,4 @@ def eval_model(model, loader) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
             hidden.append(hidden_state)
             cell.append(cell_state)
             preds.append(y_hat)
-        #print("MCLSTM cell state, hidden, and m tot sum: ", torch.cat(cell).sum(dim=0), torch.sum(torch.cat(hidden)), torch.cat(cell).sum(dim=0)+torch.sum(torch.cat(hidden)))
-        #print("COUNT: ", COUNT)
-            
-            
     return torch.cat(obs), torch.cat(preds), torch.cat(hidden), torch.cat(cell)
