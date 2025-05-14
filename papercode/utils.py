@@ -1,12 +1,6 @@
 """
 This file is part of the accompanying code to our manuscript:
-
-Kratzert, F., Klotz, D., Herrnegger, M., Sampson, A. K., Hochreiter, S., & Nearing, G. S. ( 2019). 
-Toward improved predictions in ungauged basins: Exploiting the power of machine learning.
-Water Resources Research, 55. https://doi.org/10.1029/2019WR026065 
-
-You should have received a copy of the Apache-2.0 license along with the code. If not,
-see <https://opensource.org/licenses/Apache-2.0>
+Y. Wang, L. Zhang, N.B. Erichson, T. Yang. (2025). A Mass Conservation Relaxed (MCR) LSTM Model for Streamflow Simulation
 """
 import sys
 from pathlib import Path, PosixPath
@@ -25,7 +19,8 @@ def create_h5_files(camels_root: PosixPath,
                     basins: List,
                     dates: List,
                     with_basin_str: bool = True,
-                    seq_length: int = 270):
+                    seq_length: int = 270,
+                    model_name: str = 'mcrlstm'):
     """[summary]
     
     Parameters
@@ -42,7 +37,8 @@ def create_h5_files(camels_root: PosixPath,
         If True, stores for each sample the corresponding USGS gauged id, by default True
     seq_length : int, optional
         Length of the requested input sequences., by default 270
-    
+    model_name: str, optional
+        Should be selected in ['lstm','mclstm','mcrlstm']
     Raises
     ------
     FileExistsError
@@ -91,7 +87,8 @@ def create_h5_files(camels_root: PosixPath,
                 basin=basin,
                 is_train=True,
                 seq_length=seq_length,
-                dates=dates)
+                dates=dates,
+                model_name=model_name)
 
             num_samples = len(dataset)
             total_samples = input_data.shape[0] + num_samples
@@ -123,13 +120,7 @@ def get_basin_list() -> List:
     List
         List containing the 8-digit basin code of all basins
     """
-    basin_file = Path(__file__).absolute().parent.parent / "data/basin_list.txt" #yhwang comment out for Bukovsky subregion training
-    # Bukovsky regions:
-    # 'NorthAtlantic', 'MidAtlantic', 'Appalachia', 'Southeast',
-    #  'DeepSouth', 'Prairie', 'GreatLakes', 'NPlains', 'NRockies',
-    #  'SRockies', 'CPlains', 'SPlains', 'Mezquital', 'Southwest',
-    #  'GreatBasin', 'PacificSW', 'PacificNW'
-    #basin_file = Path(__file__).absolute().parent.parent / "data/NPlains_gauges.txt"
+    basin_file = Path(__file__).absolute().parent.parent / "data/basin_list.txt"
     with basin_file.open('r') as fp:
         basins = fp.readlines()
     basins = [basin.strip() for basin in basins]
