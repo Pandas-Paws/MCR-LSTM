@@ -11,7 +11,7 @@ Get CAMELS data from https://ral.ucar.edu/solutions/products/camels. The filepa
 
 Download the updated (extended) NLDAS forcings from HydroShare. These include daily min and max temperature, compared to the CAMELS NLDAS forcings that only contain daily mean temperature.
 
-In addition, to train, validate, and evaluate the proposed deep learning (DL) models, a predefined list of USGS 8-digit gauge IDs, corresponding to the CAMELS watersheds of interest, must first be established. Here, we provide an example which includes 10 USGS gauge IDs. The example list file is named as "basin_list.txt" in the data folder, containing the 531 basins used in our study.
+In addition, to train, validate, and evaluate the proposed deep learning (DL) models, a predefined list of USGS 8-digit gauge IDs, corresponding to the CAMELS watersheds of interest, must first be established. The example list file is named as "basin_list.txt" in the data folder, containing the 531 basins used in our study.
 
 # To train models:
 
