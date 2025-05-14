@@ -1,14 +1,3 @@
-"""
-This file is part of the accompanying code to our manuscript:
-
-Kratzert, F., Klotz, D., Herrnegger, M., Sampson, A. K., Hochreiter, S., & Nearing, G. S. ( 2019). 
-Toward improved predictions in ungauged basins: Exploiting the power of machine learning.
-Water Resources Research, 55. https://doi.org/10.1029/2019WR026065 
-
-You should have received a copy of the Apache-2.0 license along with the code. If not,
-see <https://opensource.org/licenses/Apache-2.0>
-"""
-
 import glob
 import os
 import pickle
@@ -17,7 +6,7 @@ import sys
 import pandas as pd
 
 # number of ensemble members
-nSeeds = 8
+nSeeds = 1
 firstSeed = 200
 
 # user inputs
