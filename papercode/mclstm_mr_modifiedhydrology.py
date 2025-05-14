@@ -1,10 +1,15 @@
+"""
+This file is part of the accompanying code to our manuscript:
+Y. Wang, L. Zhang, N.B. Erichson, T. Yang. (2025). A Mass Conservation Relaxed (MCR) LSTM Model for Streamflow Simulation
+"""
+
 import numpy as np
 import torch
 from torch import nn, Tensor
 from typing import Tuple, List
 import tqdm
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")  # This line checks if GPU is available
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class MassConservingLSTM_MR(nn.Module):
@@ -134,10 +139,6 @@ class MassConservingLSTM_MR(nn.Module):
         r = self.redistribution(features)
         
         o = self.out_gate(features)
-        #print("I am in step, o and o_supp")
-        #print(o, o_supp)
-        #print("I am in step, o gate bias")
-        #print(self.out_gate.fc.bias
 
         # distribute incoming mass over the cell states
         m_in = torch.matmul(xt_m.unsqueeze(-2), i).squeeze(-2)
@@ -149,29 +150,12 @@ class MassConservingLSTM_MR(nn.Module):
         # compute the new mass states
         m_new = m_in + m_sys
 
-
         # compute the mass relaxing gate #TODO
         MR = self.MR_gate(c_0_norm=c / (c.norm(1) + 1e-5), f=1 - o)
-        
-        # todo
-        '''
-        # identify the MR's contribution
-        # if MR[i] < -o: MR[i] = -o
-        # else: MR[i] = MR[i]
-        condition = MR < -o
-        # Replace elements where condition is True with -o
-        modified_MR = torch.where(condition, -o, MR)
-        MR_flow = modified_MR * m_new
 
-        # set the constraint that o+MR > 0
-        relu = nn.ReLU()
-        o_prime = relu(o + MR)
-        
-        '''
         o_prime = o + MR 
         MR_flow = MR * m_new
-        
-        
+
         return o * m_new, (1 - o_prime) * m_new, o, MR, o_prime, MR_flow, o * m_new
 
 
@@ -200,10 +184,8 @@ class _MRGate(nn.Module):
         super(_MRGate, self).__init__()
         # Declare learnable parameters
         self.bias_b0_yrm = nn.Parameter(torch.FloatTensor(out_features))
-        self.weight_s_yvm = nn.Parameter(torch.FloatTensor(out_features, in_features)) #yhwang comment this out for test2
-        self.weight_r_yvm = nn.Parameter(torch.FloatTensor(out_features, in_features)) #yhwang comment this out for test2
-        #self.weight_s_yvm = nn.Parameter(torch.FloatTensor(out_features, out_features))
-        #self.weight_r_yvm = nn.Parameter(torch.FloatTensor(1, out_features)) # yhwang test2 added this
+        self.weight_s_yvm = nn.Parameter(torch.FloatTensor(out_features, in_features))
+        self.weight_r_yvm = nn.Parameter(torch.FloatTensor(out_features, in_features))
         
         # Initialize the learnable parameters
         self._reset_parameters()
@@ -232,16 +214,9 @@ class _MRGate(nn.Module):
         **** ov0 shape:  torch.Size([256, 96]) f shape:  torch.Size([256, 96]) weight_r_yvm shape:  torch.Size([64, 96])
         '''
         ov1 = self.layer_norm(torch.tanh(ov0) @ torch.sigmoid(self.weight_r_yvm.t()))
-        #ov1 = self.relu_v(ov0 @ torch.sigmoid(self.weight_r_yvm.t())) # todo
-        #ov1 = torch.tanh(self.layer_norm(torch.tanh(ov0) @ torch.sigmoid(self.weight_r_yvm.t()))) #yihwnawang test1 added this
-        #ov1 = torch.tanh(ov0) * torch.sigmoid(self.weight_r_yvm) #yhwang test 2 element wise product
-        #ov1 = self.layer_norm(ov1)
-
-        
         # Compute the final ov value using ReLU activation
         ov2 = ov1 - self.relu_v(ov1 - f)  # ensure 1-o-MR>=0
         ov = self.relu_v(ov2 + 1 - f) + f - 1  # ensure o+MR>=0 #yihanwang test commented this out
-        #ov=ov2 #yihanwang test added this
         
         return ov
 
@@ -298,11 +273,6 @@ def train_epoch(model, optimizer, loader, loss_func, epoch):
         xa = xs[..., 1:]
         # get model predictions
         m_out, c, o, mr, o_prime, mr_flow, o_flow = model(xm, xa)  # [batch size, seq length, hidden size]
-
-        #print("======== mr_flow, o_flow, c")
-        #print(mr_flow[0,0:5, 0:5])
-        #print(o_flow[0,0:5, 0:5])
-        #print(c[0,0:5, 0:5])
         
         # y_hat = m_out[:, -1:].sum(dim=-1)
         output = m_out[:, :, 1:].sum(dim=-1, keepdim=True)  # trash cell excluded [batch size, seq length, 1]
@@ -312,9 +282,6 @@ def train_epoch(model, optimizer, loader, loss_func, epoch):
         loss = loss_func(y_hat, ys)
         # calculate gradients
         loss.backward()
-
-        #for name, param in model.named_parameters():
-        #    print(f"Gradients for {name}: {param.grad}")
         loss_list.append(loss)
         # update the weights
         optimizer.step()
@@ -339,13 +306,9 @@ def eval_model(model, loader) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, T
     preds = []
     hidden = []
     cell = []
-    #out = []
-    #MR =[]
-    #out_prime = []
     MR_flow_all = []
     out_flow_all = []
-    # in inference mode, we don't need to store intermediate steps for
-    # backprob
+
     with torch.no_grad():
         COUNT = 0
         # request mini-batch of data from the loader
@@ -358,20 +321,11 @@ def eval_model(model, loader) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, T
             xa = xs[..., 1:]
             # get model predictions
             m_out, c, o, mr, o_prime, mr_flow, o_flow = model(xm, xa)
-            #print("cell state end: ", c[0,-1, :].sum(dim=-1))
-            #print("out fluxes sum: ", torch.sum(mr_flow[0,:, :]), torch.sum(o_flow[0,:, :]))
-            #print("mass in sum: ", torch.sum(xm[0,:,:]))
-            #print("mass in snap: ", xm[0,0:5,:])
-            #print("=====")
 
             output = m_out[:, :, 1:].sum(dim=-1, keepdim=True)  # trash cell excluded [batch size, seq length, 1]
             y_hat = output[:, -1, :]
             hidden_state = m_out[:, -1, :]  # [batch size, 1, hidden sizes]
             cell_state = c[:, -1, :].sum(dim=-1, keepdim=True)
-            
-            #out_gate = o[:, -1, :]
-            #MR_gate = mr[:, -1, :]
-            #out_prime_gate = o_prime[:, -1, :]
             
             MR_flow = mr_flow[:, -1, :].sum(dim=-1, keepdim=True)
             out_flow = o_flow[:, -1, :].sum(dim=-1, keepdim=True)
@@ -380,17 +334,9 @@ def eval_model(model, loader) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, T
             preds.append(y_hat)
             hidden.append(hidden_state)
             cell.append(cell_state)
-            #out.append(out_gate)
-            #MR.append(MR_gate)
-            #out_prime.append(out_prime_gate)
             
             MR_flow_all.append(MR_flow)
             out_flow_all.append(out_flow)
-            
-        #print("MCR cell state, hidden, and m tot sum: ", torch.cat(cell).sum(dim=0), torch.cat(MR_flow_all).sum(dim=0)+torch.cat(out_flow_all).sum(dim=0), torch.cat(cell).sum(dim=0)+torch.cat(MR_flow_all).sum(dim=0)+torch.cat(out_flow_all).sum(dim=0))
-        #print("COUNT: ", COUNT)
-            
-            
     return torch.cat(obs), torch.cat(preds), torch.cat(hidden), torch.cat(cell), torch.cat(MR_flow_all), torch.cat(out_flow_all) # torch.cat(out), torch.cat(MR), torch.cat(out_prime)
 
 
