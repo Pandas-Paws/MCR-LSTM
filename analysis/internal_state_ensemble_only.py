@@ -1,12 +1,6 @@
 """
 This file is part of the accompanying code to our manuscript:
-
-Kratzert, F., Klotz, D., Herrnegger, M., Sampson, A. K., Hochreiter, S., Nearing, G., "Prediction 
-in Ungauged Basins with Long Short-Term Memory Networks". submitted to Water Resources Research 
-(2019)
-
-You should have received a copy of the Apache-2.0 license along with the code. If not,
-see <https://opensource.org/licenses/Apache-2.0>
+Y. Wang, L. Zhang, N.B. Erichson, T. Yang. (2025). A Mass Conservation Relaxed (MCR) LSTM Model for Streamflow Simulation
 """
 
 import pickle
