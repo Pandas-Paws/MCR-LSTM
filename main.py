@@ -1,12 +1,6 @@
 """
 This file is part of the accompanying code to our manuscript:
-
-Kratzert, F., Klotz, D., Herrnegger, M., Sampson, A. K., Hochreiter, S., & Nearing, G. S. ( 2019). 
-Toward improved predictions in ungauged basins: Exploiting the power of machine learning.
-Water Resources Research, 55. https://doi.org/10.1029/2019WR026065 
-
-You should have received a copy of the Apache-2.0 license along with the code. If not,
-see <https://opensource.org/licenses/Apache-2.0>
+Y. Wang, L. Zhang, N.B. Erichson, T. Yang. (2025). A Mass Conservation Relaxed (MCR) LSTM Model for Streamflow Simulation
 """
 
 import argparse
@@ -47,7 +41,7 @@ GLOBAL_SETTINGS = {
     'clip_value': 1,
     'dropout': 0.4,
     'epochs': 30,
-    'hidden_size': 256,
+    'hidden_size': 64,
     'initial_forget_gate_bias': 3,
     'log_interval': 50,
     'learning_rate': 1e-3,
@@ -115,7 +109,7 @@ def get_args() -> Dict:
     parser.add_argument(
         '--model_name',
         type=str,
-        default='lstm',
+        default='mcrlstm',
         help="Choose between ['lstm','mclstm','mcrlstm'].")
     # -- end --
     parser.add_argument(
@@ -251,8 +245,8 @@ def _prepare_data(cfg: Dict, basins: List) -> Dict:
         basins=basins,
         dates=[cfg["train_start"], cfg["train_end"]],
         with_basin_str=True,
-        seq_length=cfg["seq_length"])
-
+        seq_length=cfg["seq_length"],
+        model_name=cfg["model_name"])
     return cfg
 
 
@@ -556,6 +550,7 @@ def evaluate(user_cfg: Dict):
             dates=[GLOBAL_SETTINGS["val_start"], GLOBAL_SETTINGS["val_end"]],
             is_train=False,
             seq_length=run_cfg["seq_length"],
+            model_name=run_cfg["model_name"],
             with_attributes=True,
             attribute_means=means,
             attribute_stds=stds,
@@ -656,9 +651,10 @@ def evaluate_basin(model_name: str, model: nn.Module, loader: DataLoader) -> Tup
             else:
                 preds = torch.cat((preds, p.detach().cpu()), 0)
                 obs = torch.cat((obs, y.detach().cpu()), 0)
-
-        preds = rescale_features(preds.numpy(), variable='output') # todo: comment this out for MC-LSTM. MC-LSTM does not need to rescale the pred.
-        #preds = preds.numpy() # todo: comment this out for LSTM. LSTM needs to rescale
+        if model_name == 'lstm':
+            preds = rescale_features(preds.numpy(), variable='output')
+        else:
+            preds = preds.numpy()
         obs = obs.numpy()
         # set discharges < 0 to zero
         preds[preds < 0] = 0
