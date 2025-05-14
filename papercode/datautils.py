@@ -1,12 +1,6 @@
 """
 This file is part of the accompanying code to our manuscript:
-
-Kratzert, F., Klotz, D., Herrnegger, M., Sampson, A. K., Hochreiter, S., & Nearing, G. S. ( 2019). 
-Toward improved predictions in ungauged basins: Exploiting the power of machine learning.
-Water Resources Research, 55. https://doi.org/10.1029/2019WR026065 
-
-You should have received a copy of the Apache-2.0 license along with the code. If not,
-see <https://opensource.org/licenses/Apache-2.0>
+Y. Wang, L. Zhang, N.B. Erichson, T. Yang. (2025). A Mass Conservation Relaxed (MCR) LSTM Model for Streamflow Simulation
 """
 
 import sqlite3
@@ -172,6 +166,38 @@ def normalize_features(feature: np.ndarray, variable: str) -> np.ndarray:
         feature = (feature - SCALER["input_means"]) / SCALER["input_stds"]
     elif variable == 'output':
         feature = (feature - SCALER["output_mean"]) / SCALER["output_std"]
+    else:
+        raise RuntimeError(f"Unknown variable type {variable}")
+
+    return feature
+    
+def normalize_features_noprecip(feature: np.ndarray, variable: str) -> np.ndarray:
+    """Normalize features using global pre-computed statistics.
+
+    Parameters
+    ----------
+    feature : np.ndarray
+        Data to normalize
+    variable : str
+        One of ['inputs', 'output'], where `inputs` mean, that the `feature` input are the model
+        inputs (meteorological forcing data) and `output` that the `feature` input are discharge
+        values.
+
+    Returns
+    -------
+    np.ndarray
+        Normalized features
+
+    Raises
+    ------
+    RuntimeError
+        If `variable` is neither 'inputs' nor 'output'
+    """
+
+    if variable == 'inputs':
+        feature = (feature - SCALER_noprecip["input_means"]) / SCALER_noprecip["input_stds"]
+    elif variable == 'output':
+        feature = (feature - SCALER_noprecip["output_mean"]) / SCALER_noprecip["output_std"]
     else:
         raise RuntimeError(f"Unknown variable type {variable}")
 
