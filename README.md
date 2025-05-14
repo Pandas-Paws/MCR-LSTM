@@ -31,7 +31,7 @@ The trained models will be saved under a folder "runs/". The log file will be sa
 
 Run the test scripts: 'run_global_parallel.py'. Options for these include (i) the experiment name (i.e., global_${model}_${static/no_static}), (ii) the note you specified for your trained models, and (iii) the epoch you want to test.
 
-Example: python run_global.py global_mcrlstm_static seed200 28 => This will test the LSTM trained with 32 inputs (i.e., with static variables) after being trained after completing 28 epochs training. The trained LSTM model has a note "seed200".
+Example: python run_global_parallel.py global_mcrlstm_static seed200 28 => This will test the LSTM trained with 32 inputs (i.e., with static variables) after being trained after completing 28 epochs training. The trained LSTM model has a note "seed200".
 
 Outputs from the test runs are stored in CSV (human-readable) files in the './analysis/resutls/' subdirectory.
 
