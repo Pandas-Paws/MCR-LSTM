@@ -9,7 +9,7 @@ Thus, this instruction will be in a similar fashion as in https://github.com/kra
 
 Get CAMELS data from https://ral.ucar.edu/solutions/products/camels. The filepath must be: './data/basin_dataset_public_v1p2' and must include the CAMELS attributes as a subdirectory: './data/basin_dataset_public_v1p2/camels_attributes_v2.0'.
 
-Download the updated (extended) NLDAS forcings from HydroShare. These include daily min and max temperature, compared to the CAMELS NLDAS forcings that only contain daily mean temperature.
+Download the updated (extended) NLDAS forcings from HydroShare https://www.hydroshare.org/resource/0a68bfd7ddf642a8be9041d60f40868c/. These include daily min and max temperature, compared to the CAMELS NLDAS forcings that only contain daily mean temperature.
 
 In addition, to train, validate, and evaluate the proposed deep learning (DL) models, a predefined list of USGS 8-digit gauge IDs, corresponding to the CAMELS watersheds of interest, must first be established. The example list file is named as "basin_list.txt" in the data folder, containing the 531 basins used in our study.
 
