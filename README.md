@@ -1,5 +1,7 @@
 # MCR-LSTM
-Codes for A Mass Conservation Relaxed (MCR) LSTM Model for Streamflow Simulation.
+Codes for "A Mass Conservation Relaxed (MCR) LSTM Model for Streamflow Simulation Across CONUS" published on Water Resources Research.
+The full paper can be found at https://doi.org/10.1029/2024WR039131.
+
 
 The codes are adopted, modified based on, and organized very similarly to https://github.com/kratzert/lstm_for_pub. 
 
